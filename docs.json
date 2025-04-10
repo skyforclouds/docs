@@ -21,7 +21,13 @@
             "group": "Get Started",
             "pages": [
               "introduction",
-              "quickstart"
+              {
+                "group": "CLI Quickstart",
+                "pages": [
+                  "quickstart/model-deployment",
+                  "quickstart/model-seeding"
+                ]
+              }
             ]
           },
           {

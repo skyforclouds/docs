@@ -1,0 +1,144 @@
+---
+title: 'Huggingface LLMs'
+description: 'Deploy your own LLMs from Huggingface to SoraNova'
+---
+
+### Prerequisites
+
+To deploy your own LLMs on SoraNova, begin by setting up the CLI. If you haven’t already, install it using:
+
+```bash
+curl -fsSL https://releases.s4c.ai/cli/install_cli.sh | sh
+```
+
+### Deploying a Huggingface Model
+
+SoraNova supports deploying any Huggingface-hosted LLM via a generic Docker image. Below is a sample configuration for deploying Meta’s Llama 3.1 8B Instruct model. You can customize the hardware allocation, GPU memory, and sharing strategy via Terraform variables:
+
+```hcl
+variable "memory_mib" {
+  type        = number
+  description = "Memory allocation in MiB for the model task"
+  default     = 14360
+}
+
+variable "gpu_name" {
+  type        = string
+  description = "GPU name for the model task"
+  default     = "nvidia/gpu"
+}
+
+variable "gpu_memory_mibs" {
+  type        = list(number)
+  description = "GPU memory allocation in MiB for the model task"
+  default     = [20480, 20480]
+}
+
+variable "sharing_strategy" {
+  type        = string
+  description = "GPU sharing strategy for the model task"
+  default     = "mps"
+}
+
+variable "replica_count" {
+  type        = number
+  description = "Number of replicas for the model task"
+  default     = 1
+}
+
+
+application {
+  name        = "Llama 3.1 8B Instruct"
+  summary     = "https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct"
+  description = "Smaller variant of a state-of-the-art LLM designed for natural language tasks."
+
+  service "model" {
+    name = "llama-8b"
+
+    task_group "model" {
+      count = "${var.replica_count}"
+
+      task {
+        name   = "llama-3-1-8b-instruct"
+        driver = "docker"
+        config {
+          image    = "sglang_hf_generic:latest"
+          ipc_mode = "host"
+          volumes  = ["$HOME/.cache/huggingface:/root/.cache/huggingface"]
+          args     = [
+            "--model-path", "meta-llama/Llama-3.1-8B-Instruct",
+            "--host", "0.0.0.0",
+            "--port", "5000"
+          ]
+        }
+
+        endpoint llm {
+          port = 5000
+          health {
+            type     = "http"
+            path     = "/health"
+            interval = "10s"
+            timeout  = "2s"
+          }
+        }
+
+        resources {
+          cpu_mhz    = 10240
+          memory_mib = "${var.memory_mib}"
+          sharing_strategy = "${var.sharing_strategy}"
+          device {
+            name        = "${var.gpu_name}"
+            memory_mibs = "${var.gpu_memory_mibs}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+<Note>`gpu_memory_mibs = [20480, 20480]` means a single node with two GPUs with 20,480MiB of memory each.</Note>
+
+To deploy the model:
+
+```bash
+sora recipe seed model.hcl
+sora recipe list
+sora recipe deploy <recipe-slug> # replace with the slug from the previous command
+```
+
+### Interacting with the Model
+
+After deployment, list your models using:
+
+```bash
+sora model list
+```
+
+To get an API endpoint for querying the model:
+
+```bash
+sora model api <your-model-slug>
+```
+
+You’ll receive a `curl` command that looks like this:
+
+```bash
+curl -X POST 'https://llama-8b-43112745.demo.soranova.net/v1/chat/completions' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <your-token>' \
+  -d '{
+  "max_tokens": 2048,
+  "messages": [
+    {
+        "content": "<YOUR MESSAGE>",
+        "role": "user"
+    }
+  ],
+  "model": "<MODEL NAME>",
+  "stream": false,
+  "temperature": 0.6
+}'
+```
+
+🎉 That’s it — your model is now live and ready to serve requests. Happy building!

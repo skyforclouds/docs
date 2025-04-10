@@ -1,0 +1,70 @@
+---
+title: 'Model Deployment'
+description: 'Start deploying in under 5 minutes'
+---
+
+#### Prerequisites
+Make sure you have:
+- ✅ Access to the SoraNova [Dashboard](https://portal.soranova.ai) (needed later)
+- ✅ An active Workspace set up on the dashboard
+
+To get started with the SoraNova CLI, run the following command in your terminal:
+
+```bash
+curl -fsSL https://releases.s4c.ai/cli/install_cli.sh | sh
+```
+
+This will install the latest version of the SoraNova CLI on your system.
+
+
+### Add your workspace
+
+
+```bash
+# Replace 'demo' with your preferred workspace alias
+# Replace the URL with your actual magic link from the dashboard
+sora workspace add demo https://demo.soracloud.org/unlock?secret=xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxx
+```
+
+<Note>
+  You can obtain your workspace's magic link from this [dashboard](https://portal.soranova.ai).
+</Note>
+
+### Deploy a model
+To deploy a model from the model library, you can run: 
+```bash
+sora recipe list # view all recipes you can deploy
+sora recipe deploy llama-3-1-8b-instruct
+```
+<Note>
+A recipe is a pre-configured template for deploying images on your infrastructure.
+</Note>
+
+### Interface with the model
+Once the model is deployed, you can verify it's status by running `sora model list`. To query the model via it's API, you can run:
+
+```bash
+sora model list
+sora model api <your-model-slug> # copy the slug from the output from above
+```
+and it should generate you a curl like this:
+```bash
+curl -X POST 'https://llama-8b-43112745.demo.soranova.net/v1/chat/completions' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer 04a8f35e-0cc8-4496-9f2d-3761b23640ea' \
+  -d '{
+  "max_tokens": 2048,
+  "messages": [
+    {
+        "content": "<STRING>",
+        "role": "user"
+      }
+  ],
+  "model": "<STRING>",
+  "stream": false,
+  "temperature": 0.6
+}'
+```
+
+🎉 You're all set! Start building amazing things with your deployed models.
+
