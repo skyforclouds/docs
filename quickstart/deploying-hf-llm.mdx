@@ -11,9 +11,9 @@ To deploy your own LLMs on SoraNova, begin by setting up the CLI. If you haven�
 curl -fsSL https://releases.s4c.ai/cli/install_cli.sh | sh
 ```
 
-### Deploying a Huggingface Model
+### Deploying a Huggingface LLM
 
-SoraNova supports deploying any Huggingface-hosted LLM via a generic Docker image. Below is a sample configuration for deploying Meta’s Llama 3.1 8B Instruct model. You can customize the hardware allocation, GPU memory, and sharing strategy via Terraform variables:
+SoraNova supports deploying any LLM available on Huggingface via a generic Docker image. Below is a sample configuration for deploying Meta’s Llama 3.1 8B Instruct model. You can customize the hardware allocation, GPU memory, and sharing strategy via Terraform variables:
 
 ```hcl
 variable "memory_mib" {

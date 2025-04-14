@@ -1,0 +1,176 @@
+---
+title: 'DSL Syntax'
+description: 'Keywords and structure for writing model deployment recipes using SoraNova DSL'
+icon: 'code'
+---
+
+## Variable Declaration
+
+Variables define dynamic values that can be reused throughout the deployment.
+
+```hcl
+variable "memory_mib" {
+  type        = number
+  description = "Memory allocation in MiB for the model task"
+  default     = 14360
+}
+```
+
+| Keyword       | Purpose                                                      |
+| ------------- | ------------------------------------------------------------ |
+| `variable`    | Declares a reusable value block                              |
+| `type`        | Specifies the type (`number`, `string`, `list`, etc.)        |
+| `description` | Describes what this variable is used for                     |
+| `default`     | Provides a fallback value if none is given at deploy time    |
+
+<Tip>
+Reference variables with `${var.variable_name}` in your task or resource definitions.
+</Tip>
+
+---
+
+## Application Block
+
+The `application` block is the top-level definition for a model deployment.
+
+```hcl
+application {
+  name        = "My Custom Model"
+  summary     = "https://huggingface.co/your-company/model"
+  description = "A custom model deployment"
+}
+```
+
+| Keyword       | Purpose                                        |
+| ------------- | ---------------------------------------------- |
+| `name`        | Human-readable name for your model             |
+| `summary`     | Link to model card or documentation (optional) |
+| `description` | A short description of your deployment         |
+
+---
+
+## Service and Task Group
+
+Define a `service` to a logical group together model execution tasks. 
+
+```hcl
+service "model" {
+  name = "your-model"
+
+  task_group "model" {
+    count = "${var.replica_count}"
+
+    task {
+      name   = "your-model-name"
+      driver = "docker"
+      config { ... }
+    }
+  }
+}
+```
+
+| Keyword        | Purpose                                                    |
+| -------------- | --------------------------------------------------------   |
+| `service`      | Groups all tasks that serve a single model                 |
+| `task_group`   | Defines how many replicas of a task to run                 |
+| `count`        | Sets the number of replicas (use a variable if needed)     |
+| `task`         | A single unit of execution (a container or script)         |
+| `driver`       | The runtime environment, e.g., `docker`                    |
+| `config`       | The configuration of your task, see below                  |
+
+---
+
+## Task Config
+
+Configure how your model container should be launched.
+
+```hcl
+config {
+  image    = "your-custom-model-image:latest"
+  ipc_mode = "host"
+  args     = ["--host", "0.0.0.0", "--port", "5000"]
+}
+```
+
+| Keyword     | Purpose                                               |
+| ----------- | ----------------------------------------------------- |
+| `image`     | Docker image to launch                                |
+| `ipc_mode`  | Set to `host` if your container requires GPU IPC      |
+| `args`      | Command-line arguments passed to your container       |
+
+---
+
+## Endpoint & Health Check
+
+Specify the model’s serving port and health check mechanism.
+
+```hcl
+endpoint llm {
+  port = 5000
+
+  health {
+    type     = "http"
+    path     = "/health"
+    interval = "10s"
+    timeout  = "2s"
+  }
+}
+```
+
+| Keyword    | Purpose                                                   |
+| ---------- | --------------------------------------------------------- |
+| `endpoint` | Exposes a port for requests and defines health checks     |
+| `port`     | Port that the model will serve traffic on                 |
+| `health`   | Block that determines if the container is "healthy"       |
+| `type`     | Health check type (`http`)                                |
+| `path`     | HTTP path to hit for health checking                      |
+| `interval` | How often to check the health                             |
+| `timeout`  | Timeout for each health check attempt                     |
+
+<Warning>
+  Ensure the health check path is correctly implemented in your model.
+  If the health check fails, the model may not be marked as healthy.
+</Warning>
+
+---
+
+## Resources and GPU Allocation
+
+Declare CPU, memory, and GPU resources for your task.
+
+```hcl
+resources {
+  cpu_mhz          = 10240
+  memory_mib       = "${var.memory_mib}"
+  sharing_strategy = "${var.sharing_strategy}"
+
+  device {
+    name        = "${var.gpu_name}"
+    memory_mibs = "${var.gpu_memory_mibs}"
+  }
+}
+```
+
+| Keyword           | Purpose                                                  |
+| ----------------- | -------------------------------------------------------- |
+| `cpu_mhz`         | How much CPU to allocate (in MHz)                        |
+| `memory_mib`      | RAM allocated to this task                               |
+| `sharing_strategy`| GPU usage model (`mps` for CUDA Multi-Process Service)   |
+| `device`          | GPU allocation block                                     |
+| `name`            | GPU device name (e.g., `nvidia/gpu`)                     |
+| `memory_mibs`     | Memory to allocate per GPU (MiB)                         |
+
+---
+
+## Sample Deployment Flow
+
+```bash
+# 1. Seed the model recipe
+sora recipe seed model.hcl
+
+# 2. View the available recipes
+sora recipe list
+
+# 3. Deploy the model using its slug
+sora recipe deploy <recipe-slug>
+```

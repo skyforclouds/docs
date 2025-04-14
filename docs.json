@@ -25,7 +25,8 @@
                 "group": "CLI Quickstart",
                 "pages": [
                   "quickstart/model-deployment",
-                  "quickstart/model-seeding"
+                  "quickstart/deploying-hf-llm",
+                  "quickstart/deploying-custom-models"
                 ]
               }
             ]
@@ -33,7 +34,7 @@
           {
             "group": "Essentials",
             "pages": [
-              "essentials/markdown"
+              "essentials/dsl"
             ]
           }
         ]

@@ -1,0 +1,158 @@
+---
+title: 'Deploying Custom Models'
+description: 'Deploy your custom models to SoraNova'
+---
+
+## Prerequisites
+Make sure you have:
+- ✅ Access to your webconsole instance (as root user)
+- ✅ Docker installed on your webconsole instance
+
+## Push your model image
+
+Suppose you have a custom model image that you want to deploy to SoraNova. You should first pull the image to your webconsole instance.
+
+```shell
+docker login <your-custom-model-registry>
+docker pull <your-custom-model-image>
+```
+
+For example, if you have a custom model image hosted on `docker.soracloud.net`, you can pull it with the following command:
+
+```shell
+docker login docker.soracloud.net # if your registry is private
+docker pull docker.soracloud.net/your-custom-model-image:latest
+```
+
+Then, you can seed your custom model with the following command:
+
+```shell
+# This command pushes your custom image to your SoraNova registry
+sora image push <your-custom-model-image> <your-custom-model-image-name>:<your-custom-model-image-tag>
+# e.g.
+# sora image push docker.soracloud.net/your-custom-model-image:latest your-custom-model-image:latest
+```
+
+> The `sora` CLI is a command-line interface used to interact with your SoraNova instance. If you haven’t installed it yet, follow the [Quickstart guide](/quickstart).
+
+
+## Define the deployment recipe
+
+You can deploy it by creating a new recipe by creating a `model.hcl` file with the following contents:
+
+```hcl
+# ----- Variables Block: Defines variables that can be customized during deployment -----
+
+# Amount of RAM (in MiB) allocated to the model container
+variable "memory_mib" {
+  type        = number
+  description = "Memory allocation in MiB for the model task"
+  default     = 14360
+}
+
+# GPU device name (e.g., 'nvidia/gpu')
+variable "gpu_name" {
+  type        = string
+  description = "GPU name for the model task"
+  default     = "nvidia/gpu"
+}
+
+# List of GPU memory allocations (in MiB) — one per GPU device
+variable "gpu_memory_mibs" {
+  type        = list(number)
+  description = "GPU memory allocation in MiB for the model task"
+  default     = [20480, 20480]
+}
+
+# Strategy for GPU sharing — 'mps' enables CUDA MPS for multi-process sharing
+variable "sharing_strategy" {
+  type        = string
+  description = "GPU sharing strategy for the model task"
+  default     = "mps"
+}
+
+# Number of replicas (i.e., how many copies of the model to run)
+variable "replica_count" {
+  type        = number
+  description = "Number of replicas for the model task"
+  default     = 1
+}
+
+# ----- Application Block: Defines the application configuration -----
+application {
+  name        = "My Custom Model"  # Display name of your application
+  summary     = "https://huggingface.co/your-company/custom-model"  # Optional link to model card or docs
+  description = "Adding of a custom model"  # Short description of this deployment
+
+  # Define a service named "model"
+  service "model" {
+    name = "your-model"  # Internal service name used for routing and discovery.
+
+    # Define a task group to run one or more identical tasks (replicas)
+    task_group "model" {
+      count = "${var.replica_count}"  # Number of replicas to launch
+
+      task {
+        name   = "your-model-name"  # Unique name for the task
+        driver = "docker"           # Use Docker as the container runtime
+
+        config {
+          image    = "your-custom-model-image:latest"  # Docker image to run
+          ipc_mode = "host"                            # Share IPC namespace with host (Optional - useful for some GPU workloads)
+          args     = [
+            "--host", "0.0.0.0",                       # Pass args the image needs
+            "--port", "5000"
+          ]
+        }
+
+        # Define an endpoint for the model server
+        endpoint llm {
+          port = 5000  # Port exposed by the model
+
+          health {                    # Health check - used to determine when the service is up and healthy
+            type     = "http"         # Health check type (HTTP-based)
+            path     = "/health"      # Path used for liveness check
+            interval = "10s"          # How often to check health
+            timeout  = "2s"           # How long to wait before marking as unhealthy
+          }
+        }
+
+        # Declare the hardware and resource requirements
+        resources {
+          cpu_mhz    = 10240  # CPU requested for this task (in MHz)
+          memory_mib = "${var.memory_mib}"  # Memory allocated to the task
+
+          sharing_strategy = "${var.sharing_strategy}"  # GPU sharing strategy
+
+          device {
+            name        = "${var.gpu_name}"  # GPU device name
+            memory_mibs = "${var.gpu_memory_mibs}"  # GPU memory for each device
+          }
+        }
+      }
+    }
+  }
+}
+
+```
+<Note>`health` needs to be defined by the image to tell SoraNova how to check if the model is healthy.</Note>
+
+## Deploy and Interact
+
+To deploy the model:
+
+```shell
+sora recipe seed model.hcl
+sora recipe list
+sora recipe deploy <recipe-slug> # replace with the slug from the previous command
+```
+
+After deployment, list your models using:
+
+```shell
+sora model list
+```
+
+<Note>If your model has a `/openapi.json` endpoint, you can inspect it's API using `sora model api <model-slug>`.</Note>
+
+🎉 That’s it — your model is now live and ready to serve requests. Happy building!
