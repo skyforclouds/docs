@@ -46,13 +46,14 @@
   },
   "logo": {
     "light": "/logo/logo.svg",
-    "dark": "/logo/logo.svg"
+    "dark": "/logo/logo.svg",
+    "href": "https://soranova.ai"
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:david.livingston@soracloud.ai"
+        "href": "mailto:saasadmin@soracloud.ai"
       }
     ]
   },
