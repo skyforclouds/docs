@@ -1,0 +1,7 @@
+/*
+Inside the navbar, for every img element that has src="logo/logo.svg", set max-height to 24px
+*/
+#navbar img[src="/logo/logo.svg"] {
+  max-height: 24px;
+  height: 24px;
+}
