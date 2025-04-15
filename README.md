@@ -1,6 +1,6 @@
 # SoraNova Docs
 
-This repository houses the code for the docs [site](docs.soranova.ai). 
+This repository houses the code for the docs [site](https://docs.soranova.ai). 
 
 ### Development
 
