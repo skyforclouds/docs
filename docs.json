@@ -3,8 +3,8 @@
   "theme": "mint",
   "name": "SoraNova Docs",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
+    "primary": "#A1A1A1",
+    "light": "#7391AB",
     "dark": "#15803D"
   },
   "favicon": "/favicon.svg",
@@ -57,7 +57,6 @@
     ]
   },
   "footer": {
-    "socials": {
-    }
+    "socials": {}
   }
 }
