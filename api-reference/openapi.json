@@ -19,6 +19,54 @@
     }
   ],
   "paths": {
+    "/v1/embeddings": {
+      "post": {
+        "summary": "Create Embeddings",
+        "description": "Generate embeddings for the input text",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddingsRequest"
+              },
+              "examples": {
+                "Default": {
+                  "summary": "Default",
+                  "value": {
+                    "model": "infly/inf-retriever-v1-1.5b",
+                    "input": "The quick brown fox jumps over the lazy dog"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful embedding generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmbeddingsResponse"
+                },
+                "example": {
+                  "object": "list",
+                  "data": [
+                    {
+                      "object": "embedding",
+                      "embedding": [0.042069, 0.69420],
+                      "index": 0
+                    }
+                  ],
+                  "model": "infly/inf-retriever-v1-1.5b"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/chat/completions": {
       "post": {
         "summary": "Chat Completions",
@@ -75,30 +123,61 @@
       }
     }
   },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
-          }
-        }
-      }
-    }
-  },
+  "webhooks": {},
   "components": {
     "schemas": {
+      "EmbeddingsRequest": {
+        "type": "object",
+        "required": ["model", "input"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "The model to use for embedding generation"
+          },
+          "input": {
+            "type": "string",
+            "description": "The text to embed"
+          }
+        }
+      },
+      "EmbeddingsResponse": {
+        "type": "object",
+        "required": ["object", "data", "model"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["list"]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["object", "embedding", "index"],
+              "properties": {
+                "object": {
+                  "type": "string",
+                  "enum": ["embedding"]
+                },
+                "embedding": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "The embedding vector"
+                },
+                "index": {
+                  "type": "integer",
+                  "description": "The index of the embedding in the list"
+                }
+              }
+            }
+          },
+          "model": {
+            "type": "string",
+            "description": "The model used to generate the embeddings"
+          }
+        }
+      },
       "ChatCompletionRequest": {
         "type": "object",
         "required": [

@@ -51,7 +51,8 @@
           {
             "group": "Endpoint Examples",
             "pages": [
-              "api-reference/endpoint/completions"
+              "api-reference/endpoint/completions",
+              "api-reference/endpoint/embeddings"
             ]
           }
         ]
