@@ -23,10 +23,6 @@ This will install the latest version of the SoraNova CLI on your system.
 sora workspace add demo https://demo.soracloud.org
 ```
 
-<Note>
-  You can obtain your workspace's magic link from this [dashboard](https://portal.soranova.ai).
-</Note>
-
 ### Deploy a model
 To deploy a model from the model library, you can run: 
 ```bash
@@ -38,30 +34,6 @@ A recipe is a pre-configured template for deploying images on your infrastructur
 </Note>
 
 ### Interface with the model
-Once the model is deployed, you can verify it's status by running `sora model list`. To query the model via it's API, you can run:
-
-```bash
-sora model list
-sora model api <your-model-slug> # copy the slug from the output from above
-```
-and it should generate you a curl like this:
-```bash
-curl -X POST 'https://llama-8b-43112745.demo.soranova.net/v1/chat/completions' \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer 04a8f35e-0cc8-4496-9f2d-3761b23640ea' \
-  -d '{
-  "max_tokens": 2048,
-  "messages": [
-    {
-        "content": "<STRING>",
-        "role": "user"
-      }
-  ],
-  "model": "<STRING>",
-  "stream": false,
-  "temperature": 0.6
-}'
-```
+Once the model is deployed, you can verify it's status by running `sora model list`. To query the model via it's API, you can refer to this [API reference](/api-reference/introduction.mdx).
 
 🎉 You're all set! Start building amazing things with your deployed models.
-
