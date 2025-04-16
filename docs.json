@@ -38,6 +38,23 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Documentation",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          },
+          {
+            "group": "Endpoint Examples",
+            "pages": [
+              "api-reference/endpoint/completions"
+            ]
+          }
+        ]
       }
     ],
     "global": {
@@ -58,6 +75,16 @@
     ]
   },
   "footer": {
-    "socials": {}
+    "socials": {
+    }
+  },
+  "api": {
+    "playground": {
+      "display": "none"
+    },
+    "openapi": {
+      "directory": "api-reference",
+      "source": "openapi.json"
+    }
   }
 }

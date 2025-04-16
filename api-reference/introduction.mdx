@@ -1,14 +1,9 @@
 ---
 title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+description: 'This API reference describes the RESTful, streaming, and realtime APIs you can use to interact with your deployed models.'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
-
-## Welcome
+{/* ## Welcome
 
 There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
 
@@ -18,16 +13,14 @@ There are two ways to build API documentation: [OpenAPI](https://mintlify.com/do
   href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
 >
   View the OpenAPI specification file
-</Card>
+</Card> */}
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints are authenticated using Bearer tokens and picked up from the specification file. **Remember that your token is a secret!** Do not share it with others or expose it in any client-side code (browsers, apps). Tokens should be securely loaded from an environment variable or key management service on the server.
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+Tokens should be provided via [HTTP Bearer authentication](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/).
+
+```
+Authorization: Bearer OPENAI_API_KEY
 ```
