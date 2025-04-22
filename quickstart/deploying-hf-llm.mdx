@@ -20,16 +20,10 @@ The deployment configuration DSL shown below is experimental and subject to chan
 </Warning>
 
 ```hcl
-variable "memory_mib" {
-  type        = number
-  description = "Memory allocation in MiB for the model task"
-  default     = 14360
-}
-
 variable "gpu_name" {
   type        = string
   description = "GPU name for the model task"
-  default     = "nvidia/gpu"
+  default     = "nvidia/gpu/NVIDIA L4"
 }
 
 variable "gpu_memory_mibs" {
@@ -44,61 +38,40 @@ variable "sharing_strategy" {
   default     = "mps"
 }
 
-variable "replica_count" {
-  type        = number
-  description = "Number of replicas for the model task"
-  default     = 1
-}
+model {
+  name = "llama-8b"
+  count = 1
+  
+  config {
+    image = "sglang_hf_generic:latest"
+    args = [
+      "--model-path", "meta-llama/Llama-3.1-8B-Instruct",
+      "--port", "5000"
+    ]
+  }
 
+  endpoint llm {
+    port = 5000
+    health {
+      type     = "http"
+      path     = "/health"
+      interval = "10s"
+      timeout  = "2s"
+    }
+  }
 
-application {
-  name        = "Llama 3.1 8B Instruct"
-  summary     = "https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct"
-  description = "Smaller variant of a state-of-the-art LLM designed for natural language tasks."
-
-  service "model" {
-    name = "llama-8b"
-
-    task_group "model" {
-      count = "${var.replica_count}"
-
-      task {
-        name   = "llama-3-1-8b-instruct"
-        driver = "docker"
-        config {
-          image    = "sglang_hf_generic:latest"
-          ipc_mode = "host"
-          volumes  = ["$HOME/.cache/huggingface:/root/.cache/huggingface"]
-          args     = [
-            "--model-path", "meta-llama/Llama-3.1-8B-Instruct",
-            "--host", "0.0.0.0",
-            "--port", "5000"
-          ]
-        }
-
-        endpoint llm {
-          port = 5000
-          health {
-            type     = "http"
-            path     = "/health"
-            interval = "10s"
-            timeout  = "2s"
-          }
-        }
-
-        resources {
-          cpu_mhz    = 10240
-          memory_mib = "${var.memory_mib}"
-          sharing_strategy = "${var.sharing_strategy}"
-          device {
-            name        = "${var.gpu_name}"
-            memory_mibs = "${var.gpu_memory_mibs}"
-          }
-        }
-      }
+  resources {
+    cpu_mhz          = 10240
+    memory_mib       = 14360
+    sharing_strategy = "${var.sharing_strategy}"
+    device {
+      name        =  "${var.gpu_name}"
+      memory_mibs = "${var.gpu_memory_mibs}"
     }
   }
 }
+
+
 ```
 
 <Note>`gpu_memory_mibs = [20480, 20480]` means a single node with two GPUs with 20,480MiB of memory each.</Note>

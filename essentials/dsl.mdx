@@ -6,7 +6,7 @@ icon: 'code'
 
 ## Variable Declaration
 
-Variables define dynamic values that can be reused throughout the deployment.
+Variables allow you to specify configurable values when deploying a service. If no value is provided during deployment, the variable will use its defined default value.
 
 ```hcl
 variable "memory_mib" {
@@ -49,45 +49,64 @@ application {
 
 ---
 
-## Service and Task Group
+## Model Block
 
-Define a `service` to a logical group together model execution tasks. 
+The `model` block provides a simplified way to deploy a model.
 
 ```hcl
-service "model" {
-  name = "your-model"
+model {
+  name  = "llama-8b"
+  count = 1
+  
+  config {
+    image = "sglang_hf_generic:latest"
+    args  = [
+      "--model-path", "meta-llama/Llama-3.1-8B-Instruct",
+      "--port", "5000"
+    ]
+  }
 
-  task_group "model" {
-    count = "${var.replica_count}"
+  endpoint llm {
+    port = 5000
+    health {
+      type     = "http"
+      path     = "/health"
+      interval = "10s"
+      timeout  = "2s"
+    }
+  }
 
-    task {
-      name   = "your-model-name"
-      driver = "docker"
-      config { ... }
+  resources {
+    cpu_mhz          = 10240
+    memory_mib       = 14360
+    sharing_strategy = "${var.sharing_strategy}"
+    device {
+      name        = "${var.gpu_name}"
+      memory_mibs = "${var.gpu_memory_mibs}"
     }
   }
 }
 ```
 
-| Keyword        | Purpose                                                    |
-| -------------- | --------------------------------------------------------   |
-| `service`      | Groups all tasks that serve a single model                 |
-| `task_group`   | Defines how many replicas of a task to run                 |
-| `count`        | Sets the number of replicas (use a variable if needed)     |
-| `task`         | A single unit of execution (a container or script)         |
-| `driver`       | The runtime environment, e.g., `docker`                    |
-| `config`       | The configuration of your task, see below                  |
+| Keyword    | Purpose                                                          |
+| ---------- | ---------------------------------------------------------------- |
+| `name`     | Unique identifier for your model deployment                       |
+| `count`    | Number of model replicas to run                                  |
+| `config`   | Container configuration including image and startup arguments     |
+| `args`     | List of arguments passed to the container                        |
+| `endpoint` | Network endpoint and health check configuration                   |
+| `resources`| Hardware resource allocation for the model                        |
+
 
 ---
 
-## Task Config
+## Config
 
 Configure how your model container should be launched.
 
 ```hcl
 config {
   image    = "your-custom-model-image:latest"
-  ipc_mode = "host"
   args     = ["--host", "0.0.0.0", "--port", "5000"]
 }
 ```
@@ -95,7 +114,6 @@ config {
 | Keyword     | Purpose                                               |
 | ----------- | ----------------------------------------------------- |
 | `image`     | Docker image to launch                                |
-| `ipc_mode`  | Set to `host` if your container requires GPU IPC      |
 | `args`      | Command-line arguments passed to your container       |
 
 ---

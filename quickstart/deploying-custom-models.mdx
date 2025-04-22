@@ -46,13 +46,6 @@ The deployment configuration DSL shown below is experimental and subject to chan
 ```hcl
 # ----- Variables Block: Defines variables that can be customized during deployment -----
 
-# Amount of RAM (in MiB) allocated to the model container
-variable "memory_mib" {
-  type        = number
-  description = "Memory allocation in MiB for the model task"
-  default     = 14360
-}
-
 # GPU device name (e.g., 'nvidia/gpu')
 variable "gpu_name" {
   type        = string
@@ -81,58 +74,36 @@ variable "replica_count" {
   default     = 1
 }
 
-# ----- Application Block: Defines the application configuration -----
-application {
-  name        = "My Custom Model"  # Display name of your application
-  summary     = "https://huggingface.co/your-company/custom-model"  # Optional link to model card or docs
-  description = "Adding of a custom model"  # Short description of this deployment
+# ----- Model Block: Defines the application configuration -----
+model {
+  name = "your-custom-model-name" # Display name of your model. Has to be unique.
+  count = "${var.replica_count}"
+  
+  config {
+    image = "your-model-name:latest"
+  }
 
-  # Define a service named "model"
-  service "model" {
-    name = "your-model"  # Internal service name used for routing and discovery.
+  env {
+    # Add any environment variables needed for your model
+  }
 
-    # Define a task group to run one or more identical tasks (replicas)
-    task_group "model" {
-      count = "${var.replica_count}"  # Number of replicas to launch
+  endpoint llm {
+    port = 5000
+    health {
+      type     = "http"
+      path     = "/health"
+      interval = "10s"
+      timeout  = "2s"
+    }
+  }
 
-      task {
-        name   = "your-model-name"  # Unique name for the task
-        driver = "docker"           # Use Docker as the container runtime
-
-        config {
-          image    = "your-custom-model-image:latest"  # Docker image to run
-          ipc_mode = "host"                            # Share IPC namespace with host (Optional - useful for some GPU workloads)
-          args     = [
-            "--host", "0.0.0.0",                       # Pass args the image needs
-            "--port", "5000"
-          ]
-        }
-
-        # Define an endpoint for the model server
-        endpoint llm {
-          port = 5000  # Port exposed by the model
-
-          health {                    # Health check - used to determine when the service is up and healthy
-            type     = "http"         # Health check type (HTTP-based)
-            path     = "/health"      # Path used for liveness check
-            interval = "10s"          # How often to check health
-            timeout  = "2s"           # How long to wait before marking as unhealthy
-          }
-        }
-
-        # Declare the hardware and resource requirements
-        resources {
-          cpu_mhz    = 10240  # CPU requested for this task (in MHz)
-          memory_mib = "${var.memory_mib}"  # Memory allocated to the task
-
-          sharing_strategy = "${var.sharing_strategy}"  # GPU sharing strategy
-
-          device {
-            name        = "${var.gpu_name}"  # GPU device name
-            memory_mibs = "${var.gpu_memory_mibs}"  # GPU memory for each device
-          }
-        }
-      }
+  resources {
+    cpu_mhz          = 10240
+    memory_mib       = 14360
+    sharing_strategy = "${var.sharing_strategy}"
+    device {
+      name        =  "${var.gpu_name}"
+      memory_mibs = "${var.gpu_memory_mibs}"
     }
   }
 }
@@ -155,7 +126,5 @@ After deployment, list your models using:
 ```shell
 sora model list
 ```
-
-<Note>If your model has a `/openapi.json` endpoint, you can inspect it's API using `sora model api <model-slug>`.</Note>
 
 🎉 That’s it — your model is now live and ready to serve requests. Happy building!
