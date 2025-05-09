@@ -12,24 +12,24 @@ Make sure you have:
 Suppose you have a custom model image that you want to deploy to SoraNova. You should first pull the image to your webconsole instance.
 
 ```shell
-docker login <your-custom-model-registry>
-docker pull <your-custom-model-image>
+docker login <model-registry>
+docker pull <model-image>
 ```
 
 For example, if you have a custom model image hosted on `docker.soracloud.net`, you can pull it with the following command:
 
 ```shell
 docker login docker.soracloud.net # if your registry is private
-docker pull docker.soracloud.net/your-custom-model-image:latest
+docker pull docker.soracloud.net/model-image:latest
 ```
 
 Then, you can seed your custom model with the following command:
 
 ```shell
 # This command pushes your custom image to your SoraNova registry
-sora image push <your-custom-model-image> <your-custom-model-image-name>:<your-custom-model-image-tag>
+sora image push <repo>/<model-image> <model-image>:<image-tag>
 # e.g.
-# sora image push docker.soracloud.net/your-custom-model-image:latest your-custom-model-image:latest
+# sora image push docker.soracloud.net/model-image:latest model-image:latest
 ```
 
 > The `sora` CLI is a command-line interface used to interact with your SoraNova instance. If you haven’t installed it yet, follow the [Quickstart guide](/quickstart).
