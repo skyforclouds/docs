@@ -26,7 +26,8 @@
                 "pages": [
                   "quickstart/model-deployment",
                   "quickstart/deploying-hf-llm",
-                  "quickstart/deploying-custom-models"
+                  "quickstart/deploying-custom-models",
+                  "quickstart/using-openai-sdk"
                 ]
               }
             ]

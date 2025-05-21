@@ -1,0 +1,82 @@
+---
+title: 'Using OpenAI SDK'
+description: 'Integrating Sora-deployed models with OpenAI SDK'
+---
+
+#### Prerequisites
+Make sure you have a successfully deployed Sora model as per the previous section.
+
+Obtain the `BASE_URL` and `BEARER_TOKEN` from the API page as follows.
+
+```
+curl 'https://llm-api-66414768.sora-h26.soracloud.org/v1/chat/completions' \
+  -H 'authorization: Bearer 2f482a3f-ee14-4bdd-ab21-1782dd7e8890' \
+...
+```
+
+In this case, the respective values to take note would be:
+- `BEARER_TOKEN`: 2f482a3f-ee14-4bdd-ab21-1782dd7e8890
+- `BASE_URL`: https://llm-api-66414768.sora-h26.soracloud.org/v1
+
+<Tabs>
+    <Tab title="Python">
+        Install OpenAI Python package:
+        ```bash
+        pip install openai
+        ```
+
+        With the OpenAI SDK installed, create a file called example.py and copy the example code into it:
+        ```python
+        from openai import OpenAI
+        client = OpenAI(base_url=<BASE_URL>, api_key=<BEARER_TOKEN>)
+
+        completion = client.chat.completions.create(
+            model="sora-amazing-model",
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Write a one-sentence bedtime story about a unicorn."
+                }
+            ],
+            stream=True,
+        )
+        for chunk in completion:
+            print(chunk.choices[0].delta)
+        ```
+        
+    </Tab>
+    <Tab title="JavaScript">
+        Install OpenAI Node.js package:
+        ```bash
+        npm install openai
+        ```
+
+        With the OpenAI SDK installed, create a file called example.js and copy the example code into it:
+        ```javascript
+        import OpenAI from "openai";
+        const client = new OpenAI({
+            baseURL: "<BASE_URL>",
+            apiKey: "<BEARER_TOKEN>"
+        });
+
+        const stream = await client.chat.completions.create({
+            model: "sora-amazing-model",
+            messages: [
+                {
+                    role: "user",
+                    content: "Write a one-sentence bedtime story about a unicorn.",
+                },
+            ],
+            stream: true,
+        });
+
+        for await (const chunk of stream) {
+            console.log(chunk);
+            console.log(chunk.choices[0].delta);
+            console.log("****************");
+        }
+        ```
+
+
+    </Tab>
+</Tabs>
