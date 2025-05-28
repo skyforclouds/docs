@@ -31,21 +31,80 @@ Reference variables with `${var.variable_name}` in your task or resource definit
 
 ## Application Block
 
-The `application` block is the top-level definition for a model deployment.
+The `application` block is the top-level definition for an application deployment. It describes the overall app and contains one or more `service` blocks.
 
 ```hcl
 application {
   name        = "My Custom Model"
   summary     = "https://huggingface.co/your-company/model"
   description = "A custom model deployment"
+  category    = "model"
+  tags        = ["llm", "text2text"]
+
+  service "model" {
+    name = "my-model"
+    // ...service definition...
+  }
+
+  service "ui" {
+    name = "frontend"
+    // ...service definition...
+  }
 }
 ```
 
-| Keyword       | Purpose                                        |
-| ------------- | ---------------------------------------------- |
-| `name`        | Human-readable name for your model             |
-| `summary`     | Link to model card or documentation (optional) |
-| `description` | A short description of your deployment         |
+| Keyword       | Purpose                                                      |
+| ------------- | ------------------------------------------------------------ |
+| `name`        | Human-readable name for your application                     |
+| `summary`     | Link to model card or documentation (optional)               |
+| `description` | A short description of your deployment                       |
+| `category`    | Category for grouping (e.g., `model`, `agent`, `tool`)       |
+| `tags`        | List of tags for search and filtering                        |
+| `service`     | Defines a component of your application (model, UI, etc.)    |
+
+Each `service` block describes a deployable component (such as a model backend, UI, or internal service) and can contain nested `task_group` and `task` blocks for detailed configuration.
+
+---
+
+## Service Block
+
+A `service` block defines a deployable component of your application, such as a model backend, UI, or internal service. Each service can contain one or more `task_group` blocks, which in turn contain `task` blocks for detailed configuration.
+
+```hcl
+service "model" {
+  name = "my-model"
+
+  task_group "model" {
+    name  = "my-model"
+    count = 1
+
+    task {
+      name   = "my-model"
+      driver = "docker"
+      config {
+        image = "my-model-image:latest"
+      }
+      endpoint api {
+        port = 5000
+      }
+      resources {
+        cpu_mhz    = 10240
+        memory_mib = 4096
+      }
+    }
+  }
+}
+```
+
+| Keyword         | Purpose                                                      |
+| --------------- | ------------------------------------------------------------ |
+| `service`       | Declares a service component (e.g., model, ui, internal)     |
+| `name`          | Name of the service instance                                 |
+| `uses`          | (Optional) Reference to another service by name              |
+| `task_group`    | Defines a group of tasks for this service                    |
+| `config`        | (Optional) Service-level configuration (e.g., dependencies)  |
+
+Each `task_group` block can contain one or more `task` blocks, which define how containers or processes are run. Services can also include dependencies and environment variables as needed.
 
 ---
 
@@ -56,7 +115,6 @@ The `model` block provides a simplified way to deploy a model.
 ```hcl
 model {
   name  = "llama-8b"
-  count = 1
   
   config {
     image = "sglang_hf_generic:latest"
