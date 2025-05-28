@@ -50,6 +50,7 @@ type = "docker_logs"
 [sinks.my_sink]
 type = "console"
 inputs = ["my_source", "docker_logs"]
+encoding.codec = "json"
 
 EOF
 

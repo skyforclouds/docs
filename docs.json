@@ -27,7 +27,8 @@
                   "quickstart/model-deployment",
                   "quickstart/deploying-hf-llm",
                   "quickstart/deploying-custom-models",
-                  "quickstart/using-openai-sdk"
+                  "quickstart/using-openai-sdk",
+                  "quickstart/deploying-daemon-jobs"
                 ]
               }
             ]

@@ -94,15 +94,21 @@ service "model" {
     }
   }
 }
+
+# or if you want to re-use an existing service that's deployed
+service "model" {
+  name = "my-model"
+  uses = "${var.model_slug}"
+}
 ```
 
-| Keyword         | Purpose                                                      |
-| --------------- | ------------------------------------------------------------ |
+| Keyword         | Purpose                                                         |
+| --------------- | --------------------------------------------------------------- |
 | `service`       | Declares a service component (e.g., model, ui, internal)     |
 | `name`          | Name of the service instance                                 |
-| `uses`          | (Optional) Reference to another service by name              |
+| `uses`          | (Optional) Reference to another service by it's distinct slug              |
 | `task_group`    | Defines a group of tasks for this service                    |
-| `config`        | (Optional) Service-level configuration (e.g., dependencies)  |
+| `config`        | Service-level configuration (e.g., dependencies)  |
 
 Each `task_group` block can contain one or more `task` blocks, which define how containers or processes are run. Services can also include dependencies and environment variables as needed.
 
