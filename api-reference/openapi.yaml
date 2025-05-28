@@ -1,0 +1,228 @@
+openapi: 3.0.1
+info:
+  title: Model OpenAPI Spec
+  description: OpenAPI spec for the your deployed models on SoraNova
+  license:
+    name: MIT
+  version: 1.0.0
+servers:
+  - url: http://your-model.soranova.ai
+security:
+  - bearerAuth: []
+paths:
+  /v1/embeddings:
+    post:
+      summary: Create Embeddings
+      description: Generate embeddings for the input text
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingsRequest'
+            examples:
+              Default:
+                summary: Default
+                value:
+                  model: infly/inf-retriever-v1-1.5b
+                  input: The quick brown fox jumps over the lazy dog
+        required: true
+      responses:
+        '200':
+          description: Successful embedding generation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingsResponse'
+              example:
+                object: list
+                data:
+                  - object: embedding
+                    embedding:
+                      - 0.042069
+                      - 0.6942
+                    index: 0
+                model: infly/inf-retriever-v1-1.5b
+  /v1/chat/completions:
+    post:
+      summary: Chat Completions
+      description: Generate chat completions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+            examples:
+              Default:
+                summary: Default
+                value:
+                  model: meta-llama/Llama-3.3-70B-Instruct
+                  messages:
+                    - role: user
+                      content: What is the capital of France?
+              Streaming:
+                summary: Streaming
+                value:
+                  model: meta-llama/Llama-3.3-70B-Instruct
+                  messages:
+                    - role: user
+                      content: What is the capital of France?
+                  stream: true
+        required: true
+      responses:
+        '200':
+          description: Successful completion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+components:
+  schemas:
+    EmbeddingsRequest:
+      type: object
+      required:
+        - model
+        - input
+      properties:
+        model:
+          type: string
+          description: The model to use for embedding generation
+        input:
+          type: string
+          description: The text to embed
+    EmbeddingsResponse:
+      type: object
+      required:
+        - object
+        - data
+        - model
+      properties:
+        object:
+          type: string
+          enum:
+            - list
+        data:
+          type: array
+          items:
+            type: object
+            required:
+              - object
+              - embedding
+              - index
+            properties:
+              object:
+                type: string
+                enum:
+                  - embedding
+              embedding:
+                type: array
+                items:
+                  type: number
+                description: The embedding vector
+              index:
+                type: integer
+                description: The index of the embedding in the list
+        model:
+          type: string
+          description: The model used to generate the embeddings
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: The model to use for completion
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        max_tokens:
+          type: integer
+          default: 2048
+          description: Maximum number of tokens to generate
+        temperature:
+          type: number
+          default: 0.6
+          description: Sampling temperature
+        stream:
+          type: boolean
+          default: false
+          description: Whether to stream the response
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+          description: The role of the message author
+        content:
+          type: string
+          description: The content of the message
+    ChatCompletionResponse:
+      type: object
+      required:
+        - id
+        - choices
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the completion
+        choices:
+          type: array
+          items:
+            type: object
+            required:
+              - message
+            properties:
+              message:
+                $ref: '#/components/schemas/ChatMessage'
+              finish_reason:
+                type: string
+                enum:
+                  - stop
+                  - length
+                  - content_filter
+    Plant:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          description: The name of the plant
+          type: string
+        tag:
+          description: Tag to specify the type
+          type: string
+    NewPlant:
+      allOf:
+        - $ref: '#/components/schemas/Plant'
+        - required:
+            - id
+          type: object
+          properties:
+            id:
+              description: Identification number of the plant
+              type: integer
+              format: int64
+    Error:
+      required:
+        - error
+        - message
+      type: object
+      properties:
+        error:
+          type: integer
+          format: int32
+        message:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

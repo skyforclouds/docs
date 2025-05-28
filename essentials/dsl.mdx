@@ -108,6 +108,90 @@ Each `task_group` block can contain one or more `task` blocks, which define how 
 
 ---
 
+## Task Group Block
+
+A `task_group` block represents a group of tasks (such as containers or commands) that are scheduled together on a single node. All tasks within a `task_group` share the same lifecycle and can communicate via localhost.
+
+```hcl
+task_group "model" {
+  name  = "my-model"
+  count = 1
+
+  task {
+    name   = "my-model"
+    driver = "docker"
+    config {
+      image = "my-model-image:latest"
+    }
+    resources {
+      cpu_mhz    = 10240
+      memory_mib = 4096
+    }
+  }
+}
+```
+
+| Keyword      | Purpose                                                      |
+| ------------ | ------------------------------------------------------------ |
+| `task_group` | Declares a group of tasks to be scheduled on one node        |
+| `name`       | Name of the task group                                       |
+| `count`      | Number of instances of this group to run                     |
+| `task`       | Defines a unit of execution within the group                 |
+
+---
+
+## Task Block
+
+A `task` block defines a single unit of execution, such as a container or shell command. Tasks are the smallest deployable units and can be containers, scripts, or binaries.
+
+```hcl
+# container task
+task {
+  name   = "my-model"
+  driver = "docker"
+  config {
+    image = "my-model-image:latest"
+  }
+  env {
+    EXAMPLE_ENV = "value"
+  }
+  endpoint api {
+    port = 5000
+  }
+  resources {
+    cpu_mhz    = 10240
+    memory_mib = 4096
+  }
+}
+
+# exec task
+task {
+  name   = "backup-task"
+  driver = "exec"
+
+  config {
+    command = "/bin/bash"
+    args    = ["backup.sh"]
+  }
+
+  resources {
+    memory_mib = 128
+  }
+}
+```
+
+| Keyword     | Purpose                                                      |
+| ----------- | ------------------------------------------------------------ |
+| `task`      | Declares a single unit of execution (container, command, etc.)|
+| `name`      | Name of the task                                             |
+| `driver`    | Execution backend (e.g., `docker`, `exec`)                   |
+| `config`    | Task-specific configuration (image, command, args, etc.)     |
+| `env`       | Environment variables for the task                           |
+| `endpoint`  | Network endpoint exposed by the task                         |
+| `resources` | Resource allocation for the task                             |
+
+---
+
 ## Model Block
 
 The `model` block provides a simplified way to deploy a model.

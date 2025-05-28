@@ -86,7 +86,7 @@
     },
     "openapi": {
       "directory": "api-reference",
-      "source": "openapi.json"
+      "source": "openapi.yaml"
     }
   }
 }
