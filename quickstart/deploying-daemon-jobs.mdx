@@ -12,26 +12,37 @@ Daemon jobs are background services that run on every node in your SoraNova clus
 
 ## Example: Deploying a Log Shipping Daemon
 
-Below is a sample configuration for deploying [Vector](https://vector.dev/) as a log shipper daemon. This will collect logs from `/var/log` and Docker, and can be configured to push them to an external HTTP endpoint or print them to the console.
+Below is a sample configuration for deploying [Vector](https://vector.dev/) as a log shipper daemon. This will collect logs from `/var/log` and Docker, and can be configured to push them to an external HTTP endpoint.
 
 ```hcl
-daemon {
-  name = "vector"
+variable "custom_sink_uri" {
+    type = string
+}
 
-  config {
-    image = "timberio/vector:latest-debian"
+application {
+    name        = "Vector Log Daemon"
+    summary     = "High-performance log collection and forwarding daemon that efficiently pushes logs to various sinks."
+    description = "Vector is a lightweight, ultra-fast tool for building observability pipelines. It collects, transforms, and routes logs from multiple sources to various sinks with minimal resource overhead and maximum reliability."
+    category    = "daemon"
+    tags        = ["logging", "observability", "daemon"]
 
-    volumes = [
-      "/var/log:/var/log:ro"
-    ]
+  daemon {
+    name = "vector"
 
-    args = [
-      "--config-dir", "/local/etc/vector"
-    ]
-  }
+    config {
+      image = "timberio/vector:latest-debian"
 
-  template {
-    data = <<EOF
+      volumes = [
+        "/var/log:/var/log:ro"
+      ]
+
+      args = [
+        "--config-dir", "/local/etc/vector"
+      ]
+    }
+
+    template {
+      data = <<EOF
 [sources.my_source]
 type = "file"
 include = ["/var/log/**/*.log"]
@@ -40,26 +51,21 @@ fingerprint.strategy = "device_and_inode"
 [sources.docker_logs]
 type = "docker_logs"
 
-# To push logs to a HTTP endpoint, uncomment and set the uri:
-# [sinks.my_sink]
-# type = "http"
-# inputs = ["my_source", "docker_logs"]
-# uri = "https://your-log-endpoint"
-# encoding.codec = "json"
-
 [sinks.my_sink]
-type = "console"
+type = "http"
 inputs = ["my_source", "docker_logs"]
+uri = "${var.custom_sink_uri}"
 encoding.codec = "json"
 
 EOF
 
-    destination = "/local/etc/vector/vector.toml"
-  }
+      destination = "/local/etc/vector/vector.toml"
+    }
 
-  resources {
-    cpu_mhz    = 100
-    memory_mib = 1024
+    resources {
+      cpu_mhz    = 100
+      memory_mib = 1024
+    }
   }
 }
 ```
@@ -86,23 +92,6 @@ EOF
     ```
 
 3. The daemon will now run on every node in your cluster.
-
----
-
-## Advanced: Shipping Logs to an Endpoint
-
-To push logs to an **internal HTTP endpoint**, edit the `template` block as follows:
-
-```toml
-[sinks.my_sink]
-type = "http"
-inputs = ["my_source", "docker_logs"]
-uri = "https://your-log-endpoint" # or "http://your-log-endpoint" if internal endpoint
-encoding.codec = "json"
-```
-
-
-Uncomment and adjust these lines in your `template` block, setting the `uri` to your log aggregation service (internal or external).
 
 ---
 
