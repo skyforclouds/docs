@@ -194,6 +194,10 @@ task {
 
 ## Model Block
 
+<Note>
+The `model` block is syntactic sugar for `service "model"`. The compiler automatically converts a `model` block into an equivalent `service "model"` block during processing.
+</Note>
+
 The `model` block provides a simplified way to deploy a model.
 
 ```hcl
