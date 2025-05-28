@@ -244,6 +244,71 @@ model {
 | `endpoint` | Network endpoint and health check configuration                   |
 | `resources`| Hardware resource allocation for the model                        |
 
+---
+
+## Daemon Block
+
+<Note>
+The `daemon` block is syntactic sugar for `service "daemon"`. The compiler automatically converts a `daemon` block into an equivalent `service "daemon"` block during processing.
+</Note>
+
+The `daemon` block provides a simplified way to define background services such as log shippers, sidecars, or monitoring agents. `daemon` services are deployed on every node in the cluster, allowing them to run continuously in the background.
+
+```hcl
+daemon {
+  name = "vector"
+
+  config {
+    image = "timberio/vector:latest-debian"
+
+    volumes = [
+      "/var/log:/var/log:ro"
+    ]
+
+    args = [
+      "--config-dir", "/local/etc/vector"
+    ]
+  }
+
+  template {
+    data = <<EOF
+[sources.my_source]
+type = "file"
+include = ["/var/log/**/*.log"]
+fingerprint.strategy = "device_and_inode"
+
+[sources.docker_logs]
+type = "docker_logs"
+
+[sinks.my_sink]
+type = "console"
+inputs = ["my_source", "docker_logs"]
+encoding.codec = "json"
+EOF
+
+    destination = "/local/etc/vector/vector.toml"
+  }
+
+  resources {
+    cpu_mhz    = 100
+    memory_mib = 1024
+  }
+}
+```
+
+| Keyword      | Purpose                                                        |
+| ------------ | -------------------------------------------------------------- |
+| `name`       | Unique identifier for your daemon                              |
+| `config`     | Container configuration for the daemon                         |
+| `image`      | Docker image to launch                                         |
+| `volumes`    | List of volume mounts for the container                        |
+| `args`       | Command-line arguments passed to the container                 |
+| `template`   | File templating block for configuration files                  |
+| `data`       | Contents of the template file                                  |
+| `destination`| Path inside the container where the template will be written   |
+| `resources`  | Resource allocation for the daemon                             |
+
+The `daemon` block is ideal for defining persistent background processes that support your main application, such as log collectors or monitoring agents.
 
 ---
 

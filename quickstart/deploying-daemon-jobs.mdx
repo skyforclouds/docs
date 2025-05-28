@@ -1,0 +1,108 @@
+---
+title: 'Deploying Daemon Jobs'
+description: 'Run background jobs on every node in your SoraNova cluster'
+---
+
+## What is a Daemon Job?
+
+Daemon jobs are background services that run on every node in your SoraNova cluster. They are ideal for log shippers, monitoring agents, or any persistent process that should be present on all nodes.
+
+
+---
+
+## Example: Deploying a Log Shipping Daemon
+
+Below is a sample configuration for deploying [Vector](https://vector.dev/) as a log shipper daemon. This will collect logs from `/var/log` and Docker, and can be configured to push them to an external HTTP endpoint or print them to the console.
+
+```hcl
+daemon {
+  name = "vector"
+
+  config {
+    image = "timberio/vector:latest-debian"
+
+    volumes = [
+      "/var/log:/var/log:ro"
+    ]
+
+    args = [
+      "--config-dir", "/local/etc/vector"
+    ]
+  }
+
+  template {
+    data = <<EOF
+[sources.my_source]
+type = "file"
+include = ["/var/log/**/*.log"]
+fingerprint.strategy = "device_and_inode"
+
+[sources.docker_logs]
+type = "docker_logs"
+
+# To push logs to a HTTP endpoint, uncomment and set the uri:
+# [sinks.my_sink]
+# type = "http"
+# inputs = ["my_source", "docker_logs"]
+# uri = "https://your-log-endpoint"
+# encoding.codec = "json"
+
+[sinks.my_sink]
+type = "console"
+inputs = ["my_source", "docker_logs"]
+
+EOF
+
+    destination = "/local/etc/vector/vector.toml"
+  }
+
+  resources {
+    cpu_mhz    = 100
+    memory_mib = 1024
+  }
+}
+```
+
+---
+
+## Key Points
+
+- **Daemon jobs run on every node**: Use them for log collection, monitoring, or any background process.
+- **Customizable sinks**: You can ship logs to an internal HTTP endpoint by editing the `template` block (see the commented section in the example).
+- **Resource allocation**: Use the `resources` block to control CPU and memory usage.
+
+---
+
+## Deploying the Daemon
+
+1. Save the above configuration to a file, e.g. `vector-daemon.hcl`.
+2. Deploy it using the SoraNova CLI:
+
+    ```bash
+    sora recipe seed vector-daemon.hcl
+    sora recipe list
+    sora recipe deploy <recipe-slug>
+    ```
+
+3. The daemon will now run on every node in your cluster.
+
+---
+
+## Advanced: Shipping Logs to an Endpoint
+
+To push logs to an **internal HTTP endpoint**, edit the `template` block as follows:
+
+```toml
+[sinks.my_sink]
+type = "http"
+inputs = ["my_source", "docker_logs"]
+uri = "https://your-log-endpoint" # or "http://your-log-endpoint" if internal endpoint
+encoding.codec = "json"
+```
+
+
+Uncomment and adjust these lines in your `template` block, setting the `uri` to your log aggregation service (internal or external).
+
+---
+
+🎉 That's it! You now have a background daemon running on every node in your SoraNova cluster.
