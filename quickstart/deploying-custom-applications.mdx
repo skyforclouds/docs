@@ -1,0 +1,224 @@
+---
+title: 'Deploying Applications'
+description: 'Deploy applications and background jobs on your SoraNova cluster'
+---
+
+## Overview
+
+SoraNova lets you deploy two main types of applications:
+
+- **Standard applications**: These can include a backend API, a frontend, or both, and are exposed via endpoints.
+- **Daemon jobs**: Background services that run on every node in **your** cluster (e.g., log shippers, monitoring agents).
+
+Below are examples for both types.
+
+---
+
+## Example 1: Deploying a Custom Application (Frontend + Backend)
+
+Suppose you have two container images:
+
+- A backend API (`my-backend:latest`)
+- A frontend web app (`my-frontend:latest`)
+
+You want to deploy both, and have the frontend know the backend's URL via an injected environment variable.
+
+First, push your images to your SoraNova registry:
+
+```shell
+docker pull <backend-image>
+docker pull <frontend-image>
+sora image push <backend-image> my-backend:latest
+sora image push <frontend-image> my-frontend:latest
+```
+
+Then, create an application recipe, e.g. `my-app.hcl`:
+
+```hcl
+variable "replica_count" {
+  type    = number
+  default = 1
+}
+
+application {
+  name        = "My Web App"
+  summary     = "A simple frontend and backend application"
+  description = "This app demonstrates deploying a backend API and a frontend, with the frontend receiving the backend URL via an environment variable."
+  tags        = ["frontend", "backend", "example"]
+
+  service "backend" {
+    name = "backend"
+
+    task_group "backend" {
+      name  = "backend-task-group"
+      count = "${var.replica_count}"
+
+      task {
+        config {
+          image = "my-backend:latest"
+        }
+
+        resources {
+          cpu_mhz    = 1000
+          memory_mib = 1024
+        }
+
+        env {
+          # key = "value"
+        }
+
+        endpoint api {
+          port = 8080
+          health {
+            type     = "http"
+            path     = "/health"
+            interval = "10s"
+            timeout  = "2s"
+          }
+        }
+
+
+      }
+
+    }
+  }
+
+  service "frontend" {
+    name = "frontend"
+
+    task_group "frontend" {
+      name  = "frontend-task-group"
+      count = "${var.replica_count}"
+
+      task {
+        config {
+          image = "my-frontend:latest"
+        }
+
+        env = {
+          BACKEND_URL = "${service.backend}"
+        }
+
+        resources {
+          cpu_mhz    = 1000
+          memory_mib = 1024
+        }
+
+        endpoint web {
+          port = 3000
+          health {
+            type     = "http"
+            path     = "/"
+            interval = "10s"
+            timeout  = "2s"
+          }
+        }
+      }
+    }
+    config {
+      depends_on = ["backend"]
+    }
+  }
+}
+```
+
+> The `${service.backend}` variable injects the backend's endpoint URL into the frontend container as the `BACKEND_URL` environment variable.
+
+To deploy:
+
+```shell
+sora recipe seed my-app.hcl
+sora recipe list
+sora recipe deploy <recipe-slug>
+```
+
+---
+
+## Example 2: Deploying a Daemon Job
+
+Daemon jobs are background services that run on every node in your SoraNova cluster. They are ideal for log shippers, monitoring agents, or any persistent process that should be present on all nodes.
+
+Below is a sample configuration for deploying [Vector](https://vector.dev/) as a log shipper daemon. This will collect logs from `/var/log` and Docker, and can be configured to push them to an external HTTP endpoint.
+
+```hcl
+variable "custom_sink_uri" {
+    type = string
+}
+
+application {
+    name        = "Vector Log Daemon"
+    summary     = "High-performance log collection and forwarding daemon that efficiently pushes logs to various sinks."
+    description = "Vector is a lightweight, ultra-fast tool for building observability pipelines. It collects, transforms, and routes logs from multiple sources to various sinks with minimal resource overhead and maximum reliability."
+    category    = "daemon"
+    tags        = ["logging", "observability", "daemon"]
+
+  daemon {
+    name = "vector"
+
+    config {
+      image = "timberio/vector:latest-debian"
+
+      volumes = [
+        "/var/log:/var/log:ro"
+      ]
+
+      args = [
+        "--config-dir", "/local/etc/vector"
+      ]
+    }
+
+    template {
+      data = <<EOF
+[sources.my_source]
+type = "file"
+include = ["/var/log/**/*.log"]
+fingerprint.strategy = "device_and_inode"
+
+[sources.docker_logs]
+type = "docker_logs"
+
+[sinks.my_sink]
+type = "http"
+inputs = ["my_source", "docker_logs"]
+uri = "${var.custom_sink_uri}"
+encoding.codec = "json"
+
+EOF
+
+      destination = "/local/etc/vector/vector.toml"
+    }
+
+    resources {
+      cpu_mhz    = 100
+      memory_mib = 1024
+    }
+  }
+}
+```
+
+---
+
+## Key Points
+
+- **Standard applications**: Use the `service` block for frontend/backend workloads. Use `${service.<name>}` to inject service URLs.
+- **Daemon jobs run on every node**: Use them for log collection, monitoring, or any background process.
+- **Resource allocation**: Use the `resources` block to control CPU and memory usage.
+
+---
+
+## Deploying
+
+1. Save your configuration to a file (e.g., `my-app.hcl` or `vector-daemon.hcl`).
+2. Deploy it using the SoraNova CLI:
+
+    ```bash
+    sora recipe seed <your-file>.hcl
+    sora recipe list
+    sora recipe deploy <recipe-slug>
+    ```
+
+3. Your application or daemon will now run in your cluster.
+
+---
+
+🎉 That's it! You now know how to deploy both standard applications and daemon jobs on your SoraNova cluster.
