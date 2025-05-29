@@ -1,5 +1,5 @@
 ---
-title: 'Deploying Applications'
+title: 'Deploying Custom Applications'
 description: 'Deploy applications and background jobs on your SoraNova cluster'
 ---
 
@@ -134,9 +134,9 @@ sora recipe deploy <recipe-slug>
 
 ---
 
-## Example 2: Deploying a Daemon Job
+## Example 2: Deploying a Daemon Application
 
-Daemon jobs are background services that run on every node in your SoraNova cluster. They are ideal for log shippers, monitoring agents, or any persistent process that should be present on all nodes.
+Daemon applications are background applications that run on every node in your SoraNova cluster. They are ideal for log shippers, monitoring agents, or any persistent process that should be present on all nodes.
 
 Below is a sample configuration for deploying [Vector](https://vector.dev/) as a log shipper daemon. This will collect logs from `/var/log` and Docker, and can be configured to push them to an external HTTP endpoint.
 
@@ -198,11 +198,230 @@ EOF
 
 ---
 
+## Example 3: Deploying a GPU-Accelerated Custom Application (Frontend + Backend)
+
+Suppose you have:
+
+- A custom ML backend image (`my-gpu-backend:latest`)
+- A custom frontend image (`my-frontend:latest`)
+
+First, pull and push your images to your SoraNova registry:
+
+```shell
+docker pull <your-backend-image>
+docker pull <your-frontend-image>
+sora image push <your-backend-image> my-gpu-backend:latest
+sora image push <your-frontend-image> my-frontend:latest
+```
+
+Then, create an application recipe, e.g. `my-gpu-app.hcl`:
+
+```hcl
+variable "memory_mib" {
+  type        = number
+  description = "Memory allocation in MiB for the backend task"
+  default     = 14360
+}
+
+variable "gpu_name" {
+  type        = string
+  description = "GPU name for the backend task"
+  default     = "nvidia/gpu/NVIDIA L4"
+}
+
+variable "gpu_memory_mibs" {
+  type        = list(number)
+  description = "GPU memory allocation in MiB for the backend task"
+  default     = [10240] # request for a node with at least 1 gpu having 10,240 MiB of memory by default
+}
+
+variable "sharing_strategy" {
+  type        = string
+  description = "GPU sharing strategy for the backend task"
+  default     = "mps"
+}
+
+variable "replica_count" {
+  type        = number
+  description = "Number of replicas for the backend task"
+  default     = 1
+}
+
+application {
+  name        = "Custom GPU Web App"
+  summary     = "A GPU-accelerated backend with a frontend"
+  description = "This app demonstrates deploying a GPU-accelerated backend and a frontend, with the frontend receiving the backend URL via an environment variable."
+  tags        = ["frontend", "backend", "gpu", "example"]
+
+  service "backend" {
+    name = "gpu-backend"
+
+    task_group "backend" {
+      name  = "gpu-backend-task-group"
+      count = "${var.replica_count}"
+
+      task {
+        name   = "gpu-backend"
+        driver = "docker"
+        config {
+          image = "my-gpu-backend:latest"
+        }
+
+        env {
+          # Add any required environment variables for your backend here
+        }
+
+        endpoint api {
+          port = 5000
+          health {
+            type     = "http"
+            path     = "/health"
+            interval = "10s"
+            timeout  = "2s"
+          }
+        }
+
+        resources {
+          cpu_mhz          = 10240
+          memory_mib       = "${var.memory_mib}"
+          sharing_strategy = "${var.sharing_strategy}"
+          device {
+            name        = "${var.gpu_name}"
+            memory_mibs = "${var.gpu_memory_mibs}"
+          }
+        }
+      }
+    }
+  }
+
+  service "frontend" {
+    name = "frontend"
+
+    task_group "frontend" {
+      name  = "frontend-task-group"
+      count = 1
+
+      task {
+        name   = "frontend"
+        driver = "docker"
+        config {
+          image = "my-frontend:latest"
+        }
+
+        env = {
+          BACKEND_URL = "${service.gpu-backend}"
+        }
+
+        resources {
+          memory_mib = 4096
+        }
+
+        endpoint web {
+          port = 3000
+          health {
+            type     = "http"
+            path     = "/"
+            interval = "10s"
+            timeout  = "2s"
+          }
+        }
+      }
+    }
+
+    config {
+      depends_on = ["gpu-backend"]
+    }
+  }
+}
+```
+> **Note:** Your custom images must implement their respective health check endpoints that returns a 200 status code when the service is healthy. This endpoint is used by the orchestration platform to determine when your service is up and ready to receive traffic.
+> The `${service.gpu-backend.api.url}` variable injects the backend's endpoint URL into the frontend container as the `BACKEND_URL` environment variable.
+
+To deploy:
+
+```shell
+sora recipe seed my-gpu-app.hcl
+sora recipe list
+sora recipe deploy <recipe-slug>
+```
+
+---
+
+## Example 4: Deploying a GPU-Accelerated Job Processing Daemon Application
+
+Suppose you have a custom job processor image (`my-gpu-job-processor:latest`) that fetches jobs from a queue, processes them using the GPU, stores results, and repeats. To scale this processor quickly, you can simply provision new machines and this application will automatically start on those newly added machines.
+
+First, pull and push your custom image to your SoraNova registry:
+
+```shell
+docker pull <your-job-processor-image>
+sora image push <your-job-processor-image> my-gpu-job-processor:latest
+```
+
+Then, create an application recipe, e.g. `my-gpu-job-processor.hcl`:
+
+```hcl
+application {
+  name        = "GPU Job Processor"
+  summary     = "A GPU-accelerated job processing backend"
+  description = "This service fetches jobs from a queue, processes them using the GPU, stores results, and repeats."
+  tags        = ["gpu", "job-processing", "backend", "example"]
+
+  service "job-processor" {
+    name = "gpu-job-processor"
+
+    task_group "job-processor" {
+      name  = "gpu-job-processor-task-group"
+      count = 1
+
+      task {
+        name   = "gpu-job-processor"
+        driver = "docker"
+        config {
+          image = "my-gpu-job-processor:latest"
+          # Optionally add args or env for queue endpoints, credentials, etc.
+        }
+
+        env {
+          # Example: JOB_QUEUE_URL, RESULT_STORE_URL, etc.
+          # JOB_QUEUE_URL    = "amqp://my-queue"
+          # RESULT_STORE_URL = "s3://my-bucket/results"
+        }
+
+        resources {
+          cpu_mhz          = 10240
+          memory_mib       = 10240
+          sharing_strategy = "mps"
+          device {
+            memory_mibs = [10240]
+          }
+        }
+
+      }
+    }
+  }
+}
+```
+
+> This service will run on nodes with available GPUs and process jobs as they arrive in the queue. Make sure your image implements the required logic for job fetching, processing, and result storage.
+
+To deploy:
+
+```shell
+sora recipe seed my-gpu-job-processor.hcl
+sora recipe list
+sora recipe deploy <recipe-slug>
+```
+
+---
+
 ## Key Points
 
 - **Standard applications**: Use the `service` block for frontend/backend workloads. Use `${service.<name>}` to inject service URLs.
-- **Daemon jobs run on every node**: Use them for log collection, monitoring, or any background process.
+- **Daemon applications run on every node**: Use them for log collection, monitoring, or any background process.
 - **Resource allocation**: Use the `resources` block to control CPU and memory usage.
+- **GPU allocation**: Use the `device` block to specify GPU requirements. You can target specific GPU models or specify memory requirements.
+- **GPU sharing**: Use `sharing_strategy = "mps"` to enable CUDA MPS for multi-process sharing on the same GPU.
 
 ---
 
@@ -221,4 +440,4 @@ EOF
 
 ---
 
-🎉 That's it! You now know how to deploy both standard applications and daemon jobs on your SoraNova cluster.
+🎉 That's it! You now know how to deploy both standard applications and daemon applications on your SoraNova cluster.
