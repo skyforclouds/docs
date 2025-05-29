@@ -393,8 +393,8 @@ resources {
 | `memory_mib`      | RAM allocated to this task                               |
 | `sharing_strategy`| GPU usage model (`mps` for CUDA Multi-Process Service)   |
 | `device`          | GPU allocation block                                     |
-| `name`            | GPU device name (e.g., `nvidia/gpu`)                     |
-| `memory_mibs`     | Memory to allocate per GPU (MiB)                         |
+| `name`            | **GPU** device name (e.g., `nvidia/gpu`)                     |
+| `memory_mibs`     | Memory to allocate per GPU (MiB). e.g., `[10240]` requests a node with at least 1 GPU having 10240 MiB of memory |
 
 ---
 
