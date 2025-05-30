@@ -356,7 +356,8 @@ endpoint llm {
 | Keyword    | Purpose                                                   |
 | ---------- | --------------------------------------------------------- |
 | `endpoint` | Exposes a port for requests and defines health checks     |
-| `port`     | Port that the model will serve traffic on                 |
+| `port`     | Port that the model will serve traffic on the container                |
+| `static`     | (Optional) Port that the model will serve traffic on the host. If not specified, a host port will be dynamically allocated                 |
 | `health`   | Block that determines if the container is "healthy"       |
 | `type`     | Health check type (`http`)                                |
 | `path`     | HTTP path to hit for health checking                      |

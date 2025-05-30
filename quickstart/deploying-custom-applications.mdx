@@ -347,18 +347,18 @@ sora recipe deploy <recipe-slug>
 
 ---
 
-## Example 4: Deploying a GPU-Accelerated Job Processing Daemon Application
+## Example 4: Deploying a GPU-Accelerated Daemon (Echo Server Example)
 
-Suppose you have a custom job processor image (`my-gpu-job-processor:latest`) that fetches jobs from a queue, processes them using the GPU, stores results, and repeats. To scale this processor quickly, you can simply provision new machines and this application will automatically start on those newly added machines.
+You can run any GPU-enabled daemon on every node that meets your GPU requirements. For example, here's how to deploy a simple echo server as a GPU daemon. You can replace the image with your own.
 
-First, pull and push your custom image to your SoraNova registry:
+First, pull and push the image to your SoraNova registry:
 
 ```shell
-docker pull <your-job-processor-image>
-sora image push <your-job-processor-image> my-gpu-job-processor:latest
+docker pull jmalloc/echo-server
+sora image push jmalloc/echo-server echo-server:latest
 ```
 
-Then, create an application recipe, e.g. `my-gpu-job-processor.hcl`:
+Then, create an application recipe, e.g. `gpu-echo-daemon.hcl`:
 
 ```hcl
 application {
@@ -367,48 +367,50 @@ application {
   description = "This service fetches jobs from a queue, processes them using the GPU, stores results, and repeats."
   tags        = ["gpu", "job-processing", "backend", "example"]
 
-  service "job-processor" {
+  daemon {
     name = "gpu-job-processor"
 
-    task_group "job-processor" {
-      name  = "gpu-job-processor-task-group"
-      count = 1
+    config {
+      image = "echo-server:latest"
+    }
 
-      task {
-        name   = "gpu-job-processor"
-        driver = "docker"
-        config {
-          image = "my-gpu-job-processor:latest"
-          # Optionally add args or env for queue endpoints, credentials, etc.
-        }
-
-        env {
-          # Example: JOB_QUEUE_URL, RESULT_STORE_URL, etc.
-          # JOB_QUEUE_URL    = "amqp://my-queue"
-          # RESULT_STORE_URL = "s3://my-bucket/results"
-        }
-
-        resources {
-          cpu_mhz          = 10240
-          memory_mib       = 10240
-          sharing_strategy = "mps"
-          device {
-            memory_mibs = [10240]
-          }
-        }
-
+    resources {
+      cpu_mhz          = 10240
+      memory_mib       = 10240
+      sharing_strategy = "mps"
+      device {
+        name = "nvidia/gpu"
+        memory_mibs = [10240]
       }
+    }
+
+    # endpoint - only required if the daemon needs to be accessible via HTTP. If not specified, the daemon will run in the background without an HTTP endpoint.
+    endpoint api {
+        port = 8080 # container port
+        static = 8080 # static port on the host
+        health {
+            type = "http"
+            path = "/"
+            interval = "30s"
+            timeout = "5s"
+        }
+    }
+
+    env {
+      # Example: JOB_QUEUE_URL, RESULT_STORE_URL, etc.
+      # JOB_QUEUE_URL    = "amqp://my-queue"
+      # RESULT_STORE_URL = "s3://my-bucket/results"
     }
   }
 }
 ```
 
-> This service will run on nodes with available GPUs and process jobs as they arrive in the queue. Make sure your image implements the required logic for job fetching, processing, and result storage.
+> You can replace `echo-server:latest` with any image you want. The daemon will run on all nodes with a GPU that meets the specified requirements. When new machines are provisioned, they will automatically start running this daemon if they have the required resources.
 
 To deploy:
 
 ```shell
-sora recipe seed my-gpu-job-processor.hcl
+sora recipe seed gpu-echo-daemon.hcl
 sora recipe list
 sora recipe deploy <recipe-slug>
 ```
