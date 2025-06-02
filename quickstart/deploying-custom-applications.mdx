@@ -54,6 +54,8 @@ application {
       count = "${var.replica_count}"
 
       task {
+        name  = "backend"
+        driver = "docker"
         config {
           image = "my-backend:latest"
         }
@@ -91,6 +93,7 @@ application {
       count = "${var.replica_count}"
 
       task {
+        driver = "docker"
         config {
           image = "my-frontend:latest"
         }
@@ -265,6 +268,7 @@ application {
         driver = "docker"
         config {
           image = "my-gpu-backend:latest"
+          ipc_mode = "host" # Use host IPC for GPU access
         }
 
         env {
@@ -372,6 +376,7 @@ application {
 
     config {
       image = "echo-server:latest"
+      ipc_mode = "host" # Use host networking for direct access to the GPU
     }
 
     resources {
