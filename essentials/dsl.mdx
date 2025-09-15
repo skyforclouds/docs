@@ -146,6 +146,47 @@ task_group "model" {
 
 ---
 
+## Service Types
+
+Use the service type that matches how the component should be operated and discovered.
+
+- system: Default job type for general-purpose services. Deploys the cluster based on the resources requested.
+- batch: One-off or scheduled jobs that run to completion (ETL, migrations). Prefer `driver = "exec"` for short-lived containers.
+- daemon: Long-running background agents that should be present on ALL nodes (log shippers, monitors). Not user-facing.
+- model: Model backends (LLMs, embeddings, VLMs). Requires a `task_group "model"` with the primary model task. A proxy/API will be auto-generated.
+- public-api: Publicly exposed backend API (stable, internet-facing). These backends will have to implement their own auth layer, and the token-based auth will not be enforced.
+- ui: End-user facing web frontends. Typically receive a public domain and depend on backend services.
+- internal: Private backend components not exposed publicly (DBs, indexers, workers). Consumed by other services.
+- tool: Auxiliary tool services used by agents or backends (e.g., MCP tools). Usually internal-only.
+
+Tips
+
+- Model services require a `task_group` labeled `model`; other labels are rejected.
+- Public APIs and UIs are the typical places where you rely on `${service.<name>.domain_name}`.
+- Batch services commonly use `task_group "internal"` or `task_group "tool"` with tasks that exit on success.
+
+---
+
+## Task Group Types
+
+Task group type communicates the intent and runtime characteristics of the tasks inside.
+
+- model: Model-serving workloads with one primary model task; a proxy/API may be auto-generated.
+- tool: Tooling sidecars or tool-specific services used by agents or backends.
+- ui: Frontend tasks serving static assets or web UIs for users.
+- internal: Private backends like DBs, workers, or internal HTTP services.
+- daemon: Background/agent processes; long-running and not user-facing.
+- public-api: Publicly reachable HTTP APIs with domain exposure and health checks.
+
+When to choose which
+
+- Choose model for LLM/embedding services that expose inference endpoints.
+- Choose internal for non-public components (databases, indexers, workers) used by other services.
+- Choose public-api when clients (including UIs) should call this service directly from outside the cluster.
+- Choose ui for end-user web applications (frontends) or dashboards.
+- Choose tool for MCP servers.
+- Choose daemon for node-level or background tasks that run on all nodes and should not terminate.
+
 ## Task Block
 
 A `task` block defines a single unit of execution, such as a container or shell command. Tasks are the smallest deployable units and can be containers, scripts, or binaries.
