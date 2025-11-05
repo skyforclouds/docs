@@ -1,0 +1,26 @@
+name: Auto-approve PRs
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # hourly
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: read
+  checks: read
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Auto-approve eligible PRs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { autoApprovePRs } = require('./.github/scripts/auto-approve.js');
+            await autoApprovePRs(github, context);

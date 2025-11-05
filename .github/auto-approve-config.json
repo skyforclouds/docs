@@ -1,0 +1,14 @@
+{
+  "authorizedUsers": [
+    "ajeygore",
+    "Amadeus-Winarto",
+    "ankithooda",
+    "baljanak",
+    "caia26",
+    "daviddl9",
+    "lakshaybadak",
+    "luarss",
+    "piu-sharma"
+  ],
+  "description": "List of GitHub usernames authorized for auto-approval. PRs from these users will be automatically approved if they pass CI checks and have no merge conflicts."
+}
