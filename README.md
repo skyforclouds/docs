@@ -21,7 +21,7 @@ npx mint dev
 
 ### Publishing Changes
 
-Changes pushed to the main branch will automatically get propagated to the live site. 
+Changes pushed to the main branch will automatically get propagated to the live site.
 
 #### Troubleshooting
 
