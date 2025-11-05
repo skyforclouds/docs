@@ -4,10 +4,14 @@ on:
   schedule:
     - cron: '0 * * * *'  # hourly
   workflow_dispatch:
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
 
 permissions:
   pull-requests: write
-  contents: read
+  contents: write
   checks: read
 
 jobs:
@@ -24,3 +28,11 @@ jobs:
           script: |
             const { autoApprovePRs } = require('./.github/scripts/auto-approve.js');
             await autoApprovePRs(github, context);
+
+      - name: Auto-merge approved PRs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            const { autoMergePRs } = require('./.github/scripts/auto-merge.js');
+            await autoMergePRs(github, context);
