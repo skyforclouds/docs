@@ -20,7 +20,7 @@ jobs:
       - name: Auto-approve eligible PRs
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_PAT }}
           script: |
             const { autoApprovePRs } = require('./.github/scripts/auto-approve.js');
             await autoApprovePRs(github, context);
